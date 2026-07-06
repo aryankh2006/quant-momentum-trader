@@ -87,6 +87,21 @@ def run_backtest(prices_df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(results).set_index("date")
 
 
+# downloads SPY prices and calculates what a buy-and-hold SPY investment
+# would have returned over the same period as our backtest
+def get_spy_benchmark(start_date: pd.Timestamp, end_date: pd.Timestamp) -> float:
+    """
+    Return the total SPY return from start_date to end_date.
+    Used to compare our strategy against simply buying and holding the S&P 500.
+    """
+    try:
+        spy = yf.download("SPY", start=start_date, end=end_date, progress=False)["Close"].squeeze()
+        return float(spy.iloc[-1] / spy.iloc[0] - 1)
+    except Exception as e:
+        print(f"Could not download SPY benchmark: {e}")
+        return 0.0
+
+
 if __name__ == "__main__":
     print("Loading prices...")
     prices = load_prices(TICKERS, START_DATE)
@@ -94,8 +109,14 @@ if __name__ == "__main__":
     print("Running backtest...")
     results = run_backtest(prices)
 
+    start_date = results.index[0]
+    end_date   = results.index[-1]
+    spy_return = get_spy_benchmark(start_date, end_date)
+
+    total_return = results['portfolio_value'].iloc[-1] / STARTING_CAPITAL - 1
+
     print(f"\nMonths simulated: {len(results)}")
     print(f"Starting capital: ${STARTING_CAPITAL:,.0f}")
     print(f"Final value:      ${results['portfolio_value'].iloc[-1]:,.0f}")
-    total_return = results['portfolio_value'].iloc[-1] / STARTING_CAPITAL - 1
     print(f"Total return:     {total_return:.1%}")
+    print(f"SPY return:       {spy_return:.1%}")
