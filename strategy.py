@@ -1,14 +1,20 @@
 import pandas as pd
 from data_loader import load_prices, TICKERS, START_DATE
 
-# 63 trading days is roughly 3 months (markets open ~21 days/month)
-LOOKBACK = 63
+# 12-1 momentum uses a 12-month lookback (252 trading days) but skips
+# the most recent month (21 trading days) to avoid short-term reversal
+LOOKBACK_12M = 252  # ~12 months in trading days
+SKIP_1M = 21        # ~1 month in trading days
 
 
-# scores each ticker by its 3-month return and returns the top n tickers
+# scores each ticker by 12-1 momentum and returns the top n tickers
 def get_top_picks(prices_df: pd.DataFrame, date: pd.Timestamp, n: int = 3) -> list[str]:
     """
-    Rank tickers by 3-month momentum and return the top n.
+    Rank tickers by 12-1 momentum and return the top n.
+
+    12-1 momentum = return from 12 months ago to 1 month ago, skipping
+    the most recent month. Research shows skipping the last month improves
+    performance because very recent winners tend to briefly reverse.
 
     Parameters
     ----------
@@ -24,24 +30,26 @@ def get_top_picks(prices_df: pd.DataFrame, date: pd.Timestamp, n: int = 3) -> li
     # (we must never look into the future when backtesting)
     history = prices_df.loc[:date]
 
-    # we need at least LOOKBACK rows of history to calculate a return
-    if len(history) < LOOKBACK:
+    # we need at least 12 months of history to calculate the signal
+    if len(history) < LOOKBACK_12M:
         print(f"Not enough history before {date.date()} to score tickers")
         return []
 
     scores = {}
     for ticker in prices_df.columns:
-        price_today = history[ticker].iloc[-1]        # most recent close
-        price_past = history[ticker].iloc[-LOOKBACK]  # close 63 days ago
+        # price[t-21]  = 1 month ago  (the "recent" end of our window)
+        # price[t-252] = 12 months ago (the "far" end of our window)
+        price_recent = history[ticker].iloc[-SKIP_1M]   # 1 month ago
+        price_past   = history[ticker].iloc[-LOOKBACK_12M]  # 12 months ago
 
         # skip this ticker if either price is missing - a NaN return would
         # corrupt the ranking and could bubble a broken ticker to the top
-        if pd.isna(price_today) or pd.isna(price_past):
+        if pd.isna(price_recent) or pd.isna(price_past):
             print(f"Skipping {ticker} on {date.date()} - missing price data")
             continue
 
-        # calculate the percentage return over the lookback window
-        scores[ticker] = price_today / price_past - 1
+        # 12-1 momentum score: return from 12 months ago to 1 month ago
+        scores[ticker] = price_recent / price_past - 1
 
     # sort tickers from highest to lowest momentum score
     ranked = sorted(scores, key=lambda t: scores[t], reverse=True)
