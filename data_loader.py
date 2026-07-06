@@ -7,7 +7,20 @@ START_DATE = "2018-01-01"
 
 
 # downloads daily close prices for all tickers and returns one combined DataFrame
-def load_prices(tickers, start_date):
+def load_prices(tickers: list[str], start_date: str) -> pd.DataFrame:
+    """
+    Download daily closing prices from Yahoo Finance.
+
+    Parameters
+    ----------
+    tickers    : list of ticker strings, e.g. ["AAPL", "MSFT"]
+    start_date : start of the date range, e.g. "2018-01-01"
+
+    Returns
+    -------
+    pd.DataFrame with dates as the index and tickers as columns.
+    Returns an empty DataFrame if the download fails entirely.
+    """
     try:
         data = yf.download(tickers, start=start_date)["Close"]
     except Exception as e:
