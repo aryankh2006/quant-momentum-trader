@@ -22,10 +22,19 @@ def load_prices(tickers, start_date):
     if missing:
         print(f"Warning: no data returned for {missing}")
 
+    # drop rows where every single ticker is NaN - those are non-trading days
+    # that sneak in at the edges of the date range (e.g. weekends, holidays)
+    before = len(data)
+    data = data.dropna(how="all")
+    dropped = before - len(data)
+    if dropped > 0:
+        print(f"Dropped {dropped} fully-empty rows")
+
     return data
 
 
 if __name__ == "__main__":
     prices = load_prices(TICKERS, START_DATE)
-    print(prices.shape)
-    print(prices.head())
+    print(f"Shape: {prices.shape[0]} trading days x {prices.shape[1]} tickers")
+    print(f"Date range: {prices.index[0].date()} to {prices.index[-1].date()}")
+    print(f"\nFirst 5 rows:\n{prices.head()}")
