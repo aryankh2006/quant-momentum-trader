@@ -34,11 +34,21 @@ def get_top_picks(prices_df: pd.DataFrame, date: pd.Timestamp, n: int = 3) -> li
         price_today = history[ticker].iloc[-1]        # most recent close
         price_past = history[ticker].iloc[-LOOKBACK]  # close 63 days ago
 
+        # skip this ticker if either price is missing - a NaN return would
+        # corrupt the ranking and could bubble a broken ticker to the top
+        if pd.isna(price_today) or pd.isna(price_past):
+            print(f"Skipping {ticker} on {date.date()} - missing price data")
+            continue
+
         # calculate the percentage return over the lookback window
         scores[ticker] = price_today / price_past - 1
 
     # sort tickers from highest to lowest momentum score
     ranked = sorted(scores, key=lambda t: scores[t], reverse=True)
+
+    # if fewer than n tickers had valid data, return however many we have
+    if len(ranked) < n:
+        print(f"Only {len(ranked)} valid tickers available on {date.date()}, requested {n}")
 
     return ranked[:n]
 
