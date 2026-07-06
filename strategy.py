@@ -64,8 +64,13 @@ def get_top_picks(prices_df: pd.DataFrame, date: pd.Timestamp, n: int = 3) -> li
 if __name__ == "__main__":
     prices = load_prices(TICKERS, START_DATE)
 
-    # test on a recent date
+    # test on the most recent available date
     test_date = prices.index[-1]
     picks = get_top_picks(prices, test_date, n=3)
 
-    print(f"Top 3 picks as of {test_date.date()}: {picks}")
+    print(f"\nTop 3 picks as of {test_date.date()} (12-1 momentum):")
+    for ticker in picks:
+        # recalculate score just for display purposes
+        history = prices.loc[:test_date]
+        score = history[ticker].iloc[-SKIP_1M] / history[ticker].iloc[-LOOKBACK_12M] - 1
+        print(f"  {ticker}: {score:.1%}")
