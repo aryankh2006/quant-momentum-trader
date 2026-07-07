@@ -55,7 +55,8 @@ def run_backtest(prices_df: pd.DataFrame) -> pd.DataFrame:
             results.append({
                 "date": current_date,
                 "portfolio_value": portfolio_value,
-                "tickers": [],
+                "tickers": "",
+                "in_cash": True,
             })
             continue
 
@@ -91,6 +92,7 @@ def run_backtest(prices_df: pd.DataFrame) -> pd.DataFrame:
             "date": current_date,
             "portfolio_value": round(portfolio_value, 2),
             "tickers": ",".join(picks),
+            "in_cash": False,  # we held stocks this month, not cash
         })
 
     return pd.DataFrame(results).set_index("date")
