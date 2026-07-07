@@ -93,15 +93,21 @@ def check_sector_concentration(tickers: list[str]) -> None:
 
 
 if __name__ == "__main__":
-    # quick test to make sure the rules are working
-    test_picks = ["AAPL", "MSFT", "NVDA"]
-
-    print("--- Normal scenario ---")
-    weights = apply_risk_rules(test_picks, portfolio_value=10_000, peak_value=10_000)
+    # test 1: normal - 3 tech picks, should warn about concentration
+    print("--- Normal scenario (3 tech stocks) ---")
+    picks = ["AAPL", "MSFT", "NVDA"]
+    weights = apply_risk_rules(picks, portfolio_value=10_000, peak_value=10_000)
     print(f"Weights: {weights}")
     print(f"Total invested: {sum(weights.values()):.0%}")
-    check_sector_concentration(test_picks)
+    check_sector_concentration(picks)
 
+    # test 2: kill switch - portfolio down 20% from peak
     print("\n--- Kill switch scenario (down 20%) ---")
-    weights = apply_risk_rules(test_picks, portfolio_value=8_000, peak_value=10_000)
+    weights = apply_risk_rules(picks, portfolio_value=8_000, peak_value=10_000)
     print(f"Weights: {weights}")
+
+    # test 3: mixed sectors - no concentration warning expected
+    print("\n--- Diversified scenario ---")
+    picks = ["AMZN", "MSFT", "SPY"]
+    check_sector_concentration(picks)
+    print("(no warning = diversified)")
