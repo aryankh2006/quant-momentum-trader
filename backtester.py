@@ -108,11 +108,20 @@ def get_spy_benchmark(start_date: pd.Timestamp, end_date: pd.Timestamp) -> float
 
 
 if __name__ == "__main__":
+    import os
+
     print("Loading prices...")
     prices = load_prices(TICKERS, START_DATE)
 
     print("Running backtest...")
     results = run_backtest(prices)
+
+    # save the full month-by-month results so other files can load them
+    # without having to re-run the entire simulation
+    os.makedirs("results", exist_ok=True)
+    output_path = "results/performance_report.csv"
+    results.to_csv(output_path)
+    print(f"Saved results to {output_path}")
 
     start_date = results.index[0]
     end_date   = results.index[-1]
