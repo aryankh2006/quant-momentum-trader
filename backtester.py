@@ -65,9 +65,13 @@ def run_backtest(prices_df: pd.DataFrame) -> pd.DataFrame:
         monthly_return = 0.0
 
         for ticker in picks:
-            # price at start of this month and start of next month
-            price_start = prices_df.loc[:current_date, ticker].iloc[-1]
-            price_end   = prices_df.loc[:next_date,    ticker].iloc[-1]
+            # slice prices up to (but not including) next month's start,
+            # then take the last row — that's the final trading day of this month
+            this_month = prices_df.loc[:current_date, ticker]
+            next_month = prices_df.loc[:next_date,    ticker]
+
+            price_start = this_month.iloc[-1]   # first trading day we hold
+            price_end   = next_month.iloc[-2]   # last trading day before next rebalance
 
             if pd.isna(price_start) or pd.isna(price_end):
                 # if we can't price a holding, treat that slice as flat (0% return)
