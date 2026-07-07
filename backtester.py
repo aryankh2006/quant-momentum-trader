@@ -5,6 +5,7 @@ from strategy import get_top_picks
 
 STARTING_CAPITAL = 10_000
 N_PICKS = 3
+TRANSACTION_COST = 0.001  # 0.1% cost per ticker traded each month
 
 
 # finds the first trading day of each month in the price data
@@ -75,8 +76,12 @@ def run_backtest(prices_df: pd.DataFrame) -> pd.DataFrame:
             ticker_return = price_end / price_start - 1
             monthly_return += weight * ticker_return
 
-        # update portfolio value by the weighted average return this month
-        portfolio_value = portfolio_value * (1 + monthly_return)
+        # subtract 0.1% cost for each ticker we're trading this month
+        # this approximates real-world spread and slippage
+        total_cost = TRANSACTION_COST * len(picks)
+
+        # update portfolio value: apply the return then deduct trading costs
+        portfolio_value = portfolio_value * (1 + monthly_return) * (1 - total_cost)
 
         results.append({
             "date": current_date,
