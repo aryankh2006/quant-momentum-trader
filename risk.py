@@ -1,5 +1,3 @@
-import pandas as pd
-
 # hardcoded sector for each ticker in our universe
 TICKER_SECTORS = {
     "SPY":  "ETF",
@@ -83,14 +81,12 @@ def apply_risk_rules(
         # rule 2: cap each position at 40%
         weights[ticker] = min(raw_weight, MAX_WEIGHT)
 
-    # rule 3: apply cash buffer - scale all weights so they sum to 90% max
-    total_weight = sum(weights.values())
+    # rule 3: scale all weights so they always sum to exactly 90%
+    # this enforces the cash buffer regardless of how many picks we have
     max_invested = 1.0 - CASH_BUFFER  # 0.90
-
-    if total_weight > max_invested:
-        # scale down proportionally so total = 90%
-        scale = max_invested / total_weight
-        weights = {t: w * scale for t, w in weights.items()}
+    total_weight = sum(weights.values())
+    scale = max_invested / total_weight
+    weights = {t: round(w * scale, 6) for t, w in weights.items()}
 
     return weights
 
