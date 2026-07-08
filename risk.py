@@ -17,6 +17,31 @@ CASH_BUFFER   = 0.10   # always keep 10% in cash, so max invested = 90%
 MAX_DRAWDOWN  = 0.15   # if portfolio drops 15% from its peak, go to cash
 
 
+# returns True if the portfolio has fallen more than MAX_DRAWDOWN from its peak
+def is_kill_switch_triggered(portfolio_value: float, peak_value: float) -> bool:
+    """
+    Check whether the drawdown kill switch should fire.
+
+    Parameters
+    ----------
+    portfolio_value : current portfolio value in dollars
+    peak_value      : highest portfolio value ever reached
+
+    Returns
+    -------
+    True if drawdown exceeds the threshold and we should go to cash.
+    """
+    if peak_value <= 0:
+        return False
+
+    drawdown = (peak_value - portfolio_value) / peak_value
+    if drawdown >= MAX_DRAWDOWN:
+        print(f"Kill switch triggered: drawdown is {drawdown:.1%} (limit {MAX_DRAWDOWN:.0%})")
+        return True
+
+    return False
+
+
 # applies position size limits and cash buffer to a set of picks,
 # returns a dict of {ticker: weight} that sums to at most 0.90
 def apply_risk_rules(
@@ -46,11 +71,8 @@ def apply_risk_rules(
     if not picks:
         return {}
 
-    # rule 1: drawdown kill switch
-    # calculate how far we've fallen from our all-time high
-    drawdown = (peak_value - portfolio_value) / peak_value
-    if drawdown >= MAX_DRAWDOWN:
-        print(f"Kill switch triggered: drawdown is {drawdown:.1%} (limit {MAX_DRAWDOWN:.0%})")
+    # rule 1: delegate to the dedicated kill switch function
+    if is_kill_switch_triggered(portfolio_value, peak_value):
         return {}
 
     # start with equal weight across all picks
