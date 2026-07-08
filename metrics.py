@@ -69,4 +69,39 @@ def calculate_metrics(returns_series: pd.Series, benchmark_series: pd.Series) ->
     bench_growth = (1 + benchmark_series).prod()
     metrics["benchmark_CAGR"] = bench_growth ** (1 / n_years) - 1
 
+    # --- Rolling 12-month Sharpe ---
+    # stored separately as a Series (one value per month) so the dashboard
+    # can plot how the risk-adjusted performance changed over time
+    metrics["rolling_sharpe"] = rolling_sharpe(returns_series)
+
     return metrics
+
+
+# calculates Sharpe ratio over a rolling 12-month window
+def rolling_sharpe(returns_series: pd.Series, window: int = 12) -> pd.Series:
+    """
+    Compute the Sharpe ratio over a rolling window of months.
+
+    A rolling Sharpe shows whether the strategy's risk-adjusted performance
+    improved or declined over time — useful for spotting regime changes.
+
+    Parameters
+    ----------
+    returns_series : monthly returns of the strategy
+    window         : number of months in the rolling window (default 12)
+
+    Returns
+    -------
+    pd.Series of rolling Sharpe values, one per month (NaN for first 11 months).
+    """
+    monthly_rf = RISK_FREE_RATE / MONTHS_PER_YEAR
+    excess     = returns_series - monthly_rf
+
+    # for each 12-month window: mean excess return / std, annualised
+    roll_mean = excess.rolling(window).mean()
+    roll_std  = excess.rolling(window).std()
+
+    # avoid division by zero in flat periods
+    rolling = (roll_mean / roll_std.replace(0, float("nan"))) * math.sqrt(MONTHS_PER_YEAR)
+
+    return rolling
