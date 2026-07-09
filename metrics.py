@@ -77,6 +77,31 @@ def calculate_metrics(returns_series: pd.Series, benchmark_series: pd.Series) ->
     return metrics
 
 
+# prints a clean formatted performance report from a metrics dict
+def print_report(metrics_dict: dict) -> None:
+    """
+    Print a formatted summary of strategy performance metrics.
+
+    Parameters
+    ----------
+    metrics_dict : output from calculate_metrics()
+    """
+    W = 48  # total width of the report box
+
+    print("=" * W)
+    print(f"{'STRATEGY PERFORMANCE REPORT':^{W}}")
+    print("=" * W)
+
+    # :<30 = left-align label in 30 chars, :>10.2% = right-align value as percentage
+    print(f"{'CAGR':<30}{metrics_dict['CAGR']:>10.2%}")
+    print(f"{'Sharpe Ratio':<30}{metrics_dict['Sharpe']:>10.2f}")
+    print(f"{'Max Drawdown':<30}{metrics_dict['max_drawdown']:>10.2%}")
+    print(f"{'Win Rate':<30}{metrics_dict['win_rate']:>10.2%}")
+    print("-" * W)
+    print(f"{'Benchmark CAGR (SPY)':<30}{metrics_dict['benchmark_CAGR']:>10.2%}")
+    print("=" * W)
+
+
 # calculates Sharpe ratio over a rolling 12-month window
 def rolling_sharpe(returns_series: pd.Series, window: int = 12) -> pd.Series:
     """
@@ -105,3 +130,44 @@ def rolling_sharpe(returns_series: pd.Series, window: int = 12) -> pd.Series:
     rolling = (roll_mean / roll_std.replace(0, float("nan"))) * math.sqrt(MONTHS_PER_YEAR)
 
     return rolling
+
+
+if __name__ == "__main__":
+    import yfinance as yf
+
+    # load backtest results saved by backtester.py
+    try:
+        df = pd.read_csv(
+            "results/performance_report.csv",
+            index_col="date",
+            parse_dates=True,
+        )
+    except FileNotFoundError:
+        print("No results found. Run backtester.py first.")
+        raise SystemExit
+
+    # monthly returns of our strategy
+    strategy_returns = df["portfolio_value"].pct_change().dropna()
+
+    # download real SPY data for the same date range as our backtest
+    try:
+        spy_raw = yf.download(
+            "SPY",
+            start=df.index[0],
+            end=df.index[-1],
+            progress=False,
+        )["Close"].squeeze()
+
+        # resample SPY daily prices to monthly, then calculate monthly returns
+        spy_monthly   = spy_raw.resample("MS").first()
+        spy_returns   = spy_monthly.pct_change().dropna()
+
+        # align SPY to exactly the same months as our strategy
+        spy_returns = spy_returns.reindex(strategy_returns.index).fillna(0)
+
+    except Exception as e:
+        print(f"Could not load SPY benchmark: {e} — using zeros")
+        spy_returns = pd.Series(0, index=strategy_returns.index)
+
+    metrics = calculate_metrics(strategy_returns, spy_returns)
+    print_report(metrics)
