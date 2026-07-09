@@ -39,7 +39,9 @@ def calculate_metrics(returns_series: pd.Series, benchmark_series: pd.Series) ->
     excess_returns = returns_series - monthly_rf
 
     mean_excess = excess_returns.mean()
-    std_excess  = excess_returns.std()
+    # ddof=1 uses sample standard deviation (divides by n-1, not n),
+    # which is the correct convention for financial Sharpe calculation
+    std_excess  = excess_returns.std(ddof=1)
 
     if std_excess == 0:
         metrics["Sharpe"] = 0.0
