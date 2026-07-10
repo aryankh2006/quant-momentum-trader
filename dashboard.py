@@ -86,9 +86,13 @@ st.divider()
 # ── equity curve ──────────────────────────────────────────────────────────────
 st.subheader("Equity Curve — Strategy vs SPY")
 
-# rebuild SPY as a dollar value starting at the same $10,000
+# rebuild SPY as a dollar value starting at the same amount as the strategy's
+# first month — this ensures both lines start at the same point on the chart
 starting_capital = df["portfolio_value"].iloc[0]
 spy_curve = (1 + spy_returns).cumprod() * starting_capital
+
+# align SPY curve to only the dates we have strategy data for
+spy_curve = spy_curve.reindex(df.index)
 
 fig = go.Figure()
 
