@@ -1,7 +1,9 @@
 import pandas as pd
 import plotly.graph_objects as go
+import plotly.figure_factory as ff
 import streamlit as st
 import yfinance as yf
+import numpy as np
 
 from metrics import calculate_metrics
 
@@ -169,3 +171,52 @@ fig_sharpe.update_layout(
 )
 
 st.plotly_chart(fig_sharpe, use_container_width=True)
+
+st.divider()
+
+# ── monthly returns heatmap ────────────────────────────────────────────────────
+st.subheader("Monthly Returns Heatmap")
+
+# build a year × month grid of returns
+# each cell = the strategy return for that specific month
+monthly_returns = df["portfolio_value"].pct_change().dropna()
+monthly_returns.index = pd.to_datetime(monthly_returns.index)
+
+# pivot into a table: rows = years, columns = month numbers (1-12)
+heatmap_df = monthly_returns.groupby([
+    monthly_returns.index.year,
+    monthly_returns.index.month,
+]).first().unstack(level=1)
+
+# rename columns from numbers to month abbreviations
+month_names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+heatmap_df.columns = [month_names[m - 1] for m in heatmap_df.columns]
+
+# convert to percentages for display
+z    = heatmap_df.values * 100
+text = np.where(
+    np.isnan(z),
+    "",
+    [[f"{v:.1f}%" for v in row] for row in z],
+)
+
+fig_heat = go.Figure(go.Heatmap(
+    z=z,
+    x=heatmap_df.columns.tolist(),
+    y=heatmap_df.index.tolist(),
+    text=text,
+    texttemplate="%{text}",
+    colorscale="RdYlGn",   # red = bad month, green = good month
+    zmid=0,                # centre the colour scale at 0%
+    showscale=True,
+    colorbar=dict(title="Return %"),
+))
+
+fig_heat.update_layout(
+    xaxis_title="Month",
+    yaxis_title="Year",
+    height=350,
+    margin=dict(l=0, r=0, t=10, b=0),
+)
+
+st.plotly_chart(fig_heat, use_container_width=True)
