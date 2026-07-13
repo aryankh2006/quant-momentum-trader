@@ -125,3 +125,47 @@ fig.update_layout(
 fig.update_yaxes(tickprefix="$", tickformat=",.0f")
 
 st.plotly_chart(fig, use_container_width=True)
+
+st.divider()
+
+# ── rolling sharpe chart ───────────────────────────────────────────────────────
+st.subheader("Rolling 12-Month Sharpe Ratio")
+
+rolling = metrics["rolling_sharpe"].dropna()
+
+fig_sharpe = go.Figure()
+
+fig_sharpe.add_trace(go.Scatter(
+    x=rolling.index,
+    y=rolling.values,
+    name="Rolling Sharpe",
+    line=dict(color="#7C3AED", width=2),
+    fill="tozeroy",     # shades the area between the line and zero
+    fillcolor="rgba(124, 58, 237, 0.1)",
+))
+
+# draw a horizontal line at 1.0 — the "good" threshold
+fig_sharpe.add_hline(
+    y=1.0,
+    line_dash="dash",
+    line_color="#16A34A",
+    annotation_text="Sharpe = 1.0 (good)",
+    annotation_position="bottom right",
+)
+
+# draw a horizontal line at 0 — below this we're underperforming risk-free
+fig_sharpe.add_hline(
+    y=0,
+    line_dash="dot",
+    line_color="#DC2626",
+)
+
+fig_sharpe.update_layout(
+    xaxis_title="Date",
+    yaxis_title="Sharpe Ratio",
+    height=320,
+    margin=dict(l=0, r=0, t=10, b=0),
+    showlegend=False,
+)
+
+st.plotly_chart(fig_sharpe, use_container_width=True)
