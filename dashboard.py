@@ -6,6 +6,9 @@ import yfinance as yf
 import numpy as np
 
 from metrics import calculate_metrics
+from strategy import get_top_picks, LOOKBACK_12M, SKIP_1M
+from data_loader import load_prices, TICKERS, START_DATE
+from risk import apply_risk_rules
 
 # ── page config ──────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -43,6 +46,21 @@ def load_spy(start: pd.Timestamp, end: pd.Timestamp) -> pd.Series:
         return spy_monthly.pct_change().dropna()
     except Exception:
         return pd.Series(dtype=float)
+
+
+# ── sidebar controls ──────────────────────────────────────────────────────────
+with st.sidebar:
+    st.header("⚙️ Settings")
+
+    n_picks = st.selectbox(
+        label="Number of picks",
+        options=[2, 3, 4],
+        index=1,                # default to 3
+        help="How many top momentum stocks to hold each month",
+    )
+
+    st.markdown("---")
+    st.caption("Charts update instantly when you change these settings.")
 
 
 # ── load data ─────────────────────────────────────────────────────────────────
@@ -220,3 +238,37 @@ fig_heat.update_layout(
 )
 
 st.plotly_chart(fig_heat, use_container_width=True)
+
+st.divider()
+
+# ── current holdings table ────────────────────────────────────────────────────
+st.subheader("Current Holdings (as of today)")
+
+@st.cache_data
+def load_prices_cached() -> pd.DataFrame:
+    """Load all price data — cached so it only downloads once per session."""
+    return load_prices(TICKERS, START_DATE)
+
+try:
+    prices      = load_prices_cached()
+    latest_date = prices.index[-1]
+    picks       = get_top_picks(prices, latest_date, n=n_picks)
+    weights     = apply_risk_rules(picks, portfolio_value=1.0, peak_value=1.0)
+
+    # build a table row for each pick showing its momentum score and weight
+    rows = []
+    for ticker in picks:
+        history      = prices.loc[:latest_date, ticker]
+        score        = history.iloc[-SKIP_1M] / history.iloc[-LOOKBACK_12M] - 1
+        rows.append({
+            "Ticker":           ticker,
+            "12-1 Momentum":    f"{score:.1%}",
+            "Target Weight":    f"{weights.get(ticker, 0):.1%}",
+        })
+
+    holdings_df = pd.DataFrame(rows)
+    st.dataframe(holdings_df, use_container_width=True, hide_index=True)
+    st.caption(f"Based on prices as of {latest_date.date()} | {n_picks} picks selected")
+
+except Exception as e:
+    st.warning(f"Could not load current holdings: {e}")
