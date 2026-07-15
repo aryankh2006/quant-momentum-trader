@@ -64,6 +64,8 @@ with st.sidebar:
 
 
 # ── load data ─────────────────────────────────────────────────────────────────
+# all heavy data loading is wrapped in @st.cache_data functions above,
+# so switching the sidebar n_picks dropdown doesn't re-download anything
 df          = load_results()
 returns     = df["portfolio_value"].pct_change().dropna()
 spy_returns = load_spy(df.index[0], df.index[-1])
