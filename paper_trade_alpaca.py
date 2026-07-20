@@ -5,6 +5,8 @@ from data_loader import load_prices, TICKERS, START_DATE
 from strategy import get_top_picks
 from risk import apply_risk_rules
 
+TRADE_LOG_PATH = "results/trade_log.csv"
+
 # ── DRY RUN FLAG ──────────────────────────────────────────────────────────────
 # when True, prints what orders WOULD be submitted but doesn't actually send them
 # set to False only when you're ready to trade on your real paper account
@@ -187,5 +189,40 @@ if __name__ == "__main__":
             print(f"  [DRY RUN] Would {direction} ${abs(amount):,.2f} of {ticker}")
         else:
             submit_order(api, ticker, amount)
+
+    # step 7: log this run to CSV so we have a record of every trade decision
+    print("\nStep 7: Logging to trade log...")
+    log_rows = []
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    if orders:
+        for ticker, amount in orders.items():
+            log_rows.append({
+                "timestamp":   timestamp,
+                "ticker":      ticker,
+                "direction":   "BUY" if amount > 0 else "SELL",
+                "amount_usd":  round(abs(amount), 2),
+                "dry_run":     DRY_RUN,
+            })
+    else:
+        # log a "no action" row so we know the script ran even with no trades
+        log_rows.append({
+            "timestamp":  timestamp,
+            "ticker":     "NONE",
+            "direction":  "NO_ACTION",
+            "amount_usd": 0.0,
+            "dry_run":    DRY_RUN,
+        })
+
+    log_df = pd.DataFrame(log_rows)
+
+    # append to existing log file, or create it if it doesn't exist yet
+    try:
+        os.makedirs("results", exist_ok=True)
+        write_header = not os.path.exists(TRADE_LOG_PATH)
+        log_df.to_csv(TRADE_LOG_PATH, mode="a", header=write_header, index=False)
+        print(f"  Logged {len(log_rows)} row(s) to {TRADE_LOG_PATH}")
+    except Exception as e:
+        print(f"  Could not write trade log: {e}")
 
     print("\nDone.")
