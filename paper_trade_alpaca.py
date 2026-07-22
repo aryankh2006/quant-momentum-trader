@@ -12,8 +12,17 @@ TRADE_LOG_PATH = "results/trade_log.csv"
 # set to False only when you're ready to trade on your real paper account
 DRY_RUN = True
 
+# ── LOAD .env FILE ────────────────────────────────────────────────────────────
+# python-dotenv reads key=value pairs from .env and loads them into os.environ
+# this means you only need to set your API keys once in .env, not every terminal session
+try:
+    from dotenv import load_dotenv
+    load_dotenv()  # looks for .env in the current directory
+except ImportError:
+    pass  # dotenv not installed — keys must be set manually as environment variables
+
 # ── ALPACA CONNECTION ─────────────────────────────────────────────────────────
-# API keys are loaded from environment variables so they never appear in code
+# API keys are loaded from environment variables (populated by .env above)
 ALPACA_API_KEY    = os.environ.get("ALPACA_API_KEY", "")
 ALPACA_SECRET_KEY = os.environ.get("ALPACA_SECRET_KEY", "")
 ALPACA_BASE_URL   = "https://paper-api.alpaca.markets"  # paper trading endpoint
