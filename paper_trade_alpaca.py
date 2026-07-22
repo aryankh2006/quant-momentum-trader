@@ -104,11 +104,13 @@ def calculate_orders(
     return orders
 
 
-# submits a single market order to Alpaca
-def submit_order(api, ticker: str, dollar_amount: float) -> None:
+# submits a single market order to Alpaca with detailed error handling
+def submit_order(api, ticker: str, dollar_amount: float) -> bool:
     """
     Submit a market order for a given dollar amount.
     Positive dollar_amount = buy, negative = sell.
+
+    Returns True if the order was accepted, False if it failed.
     """
     side = "buy" if dollar_amount > 0 else "sell"
 
@@ -122,8 +124,15 @@ def submit_order(api, ticker: str, dollar_amount: float) -> None:
             time_in_force="day",
         )
         print(f"  Order submitted: {side.upper()} ${abs(dollar_amount):,.2f} of {ticker}")
+        return True
+
     except Exception as e:
-        print(f"  Order FAILED for {ticker}: {e}")
+        # common failure reasons:
+        # - market is closed (orders only fill during market hours)
+        # - insufficient buying power
+        # - ticker not supported for fractional trading
+        print(f"  Order FAILED for {ticker} ({side} ${abs(dollar_amount):,.2f}): {e}")
+        return False
 
 
 if __name__ == "__main__":
@@ -147,8 +156,17 @@ if __name__ == "__main__":
     print("\nStep 2: Connecting to Alpaca...")
     try:
         api = get_alpaca_api()
-    except Exception as e:
-        print(f"Alpaca connection failed: {e}")
+    except ValueError as e:
+        # missing API keys — tell the user exactly what to do
+        print(f"\nSetup error: {e}")
+        print("Fix: set your keys before running:")
+        print("  export ALPACA_API_KEY=your_key_here")
+        print("  export ALPACA_SECRET_KEY=your_secret_here")
+        raise SystemExit
+    except ConnectionError as e:
+        # keys exist but connection failed — likely wrong keys or network issue
+        print(f"\nConnection error: {e}")
+        print("Check: are your keys from the Paper Trading section of alpaca.markets?")
         raise SystemExit
 
     # step 3: get account value and current positions
@@ -157,6 +175,7 @@ if __name__ == "__main__":
         account           = api.get_account()
         portfolio_value   = float(account.portfolio_value)
         current_positions = get_current_positions(api)
+        print(f"  Portfolio value:   ${portfolio_value:,.2f}")
         print(f"  Current positions: {list(current_positions.keys()) or 'None'}")
     except Exception as e:
         print(f"Failed to fetch account data: {e}")
