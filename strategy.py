@@ -32,8 +32,7 @@ def get_top_picks(prices_df: pd.DataFrame, date: pd.Timestamp, n: int = 3) -> li
 
     # we need at least 12 months of history to calculate the signal
     if len(history) < LOOKBACK_12M:
-        print(f"Not enough history before {date.date()} to score tickers")
-        return []
+        return []  # silently skip — backtester handles the empty result
 
     scores = {}
     for ticker in prices_df.columns:
@@ -45,7 +44,6 @@ def get_top_picks(prices_df: pd.DataFrame, date: pd.Timestamp, n: int = 3) -> li
         # skip this ticker if either price is missing - a NaN return would
         # corrupt the ranking and could bubble a broken ticker to the top
         if pd.isna(price_recent) or pd.isna(price_past):
-            print(f"Skipping {ticker} on {date.date()} - missing price data")
             continue
 
         # 12-1 momentum score: return from 12 months ago to 1 month ago
@@ -54,10 +52,7 @@ def get_top_picks(prices_df: pd.DataFrame, date: pd.Timestamp, n: int = 3) -> li
     # sort tickers from highest to lowest momentum score
     ranked = sorted(scores, key=lambda t: scores[t], reverse=True)
 
-    # if fewer than n tickers had valid data, return however many we have
-    if len(ranked) < n:
-        print(f"Only {len(ranked)} valid tickers available on {date.date()}, requested {n}")
-
+    # return however many valid tickers we have, up to n
     return ranked[:n]
 
 

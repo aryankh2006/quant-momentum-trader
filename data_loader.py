@@ -37,11 +37,7 @@ def load_prices(tickers: list[str], start_date: str) -> pd.DataFrame:
 
     # drop rows where every single ticker is NaN - those are non-trading days
     # that sneak in at the edges of the date range (e.g. weekends, holidays)
-    before = len(data)
     data = data.dropna(how="all")
-    dropped = before - len(data)
-    if dropped > 0:
-        print(f"Dropped {dropped} fully-empty rows")
 
     return data
 
