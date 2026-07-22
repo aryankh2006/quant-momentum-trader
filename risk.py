@@ -81,8 +81,9 @@ def apply_risk_rules(
         # rule 2: cap each position at 40%
         weights[ticker] = min(raw_weight, MAX_WEIGHT)
 
-    # rule 3: scale all weights so they always sum to exactly 90%
-    # this enforces the cash buffer regardless of how many picks we have
+    # rule 3: scale all weights down so they sum to exactly 90%
+    # example: 3 picks × 33% = 99% → scale factor = 90/99 = 0.909
+    # each weight × 0.909 → 3 picks × 30% = 90%, leaving 10% as cash
     max_invested = 1.0 - CASH_BUFFER  # 0.90
     total_weight = sum(weights.values())
     scale = max_invested / total_weight

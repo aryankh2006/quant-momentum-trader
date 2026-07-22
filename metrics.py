@@ -27,8 +27,10 @@ def calculate_metrics(returns_series: pd.Series, benchmark_series: pd.Series) ->
     n_months = len(returns_series)
     n_years  = n_months / MONTHS_PER_YEAR
 
-    # (1 + r1) * (1 + r2) * ... gives us the total growth factor
+    # (1 + r1) * (1 + r2) * ... chains all monthly returns into one total growth factor
+    # e.g. +5% then +3% = 1.05 × 1.03 = 1.0815 (8.15% total, not 8%)
     total_growth = (1 + returns_series).prod()
+    # annualise: what single yearly rate compounds to the same total growth?
     metrics["CAGR"] = total_growth ** (1 / n_years) - 1
 
     # --- Sharpe Ratio ---

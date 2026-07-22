@@ -41,8 +41,9 @@ def run_backtest(prices_df: pd.DataFrame) -> pd.DataFrame:
     portfolio_value = STARTING_CAPITAL
     results = []
 
-    # we need at least 13 months of history before we can calculate 12-1 momentum,
-    # so skip the first 13 months and start trading after that
+    # start at index 13 because 12-1 momentum needs 13 months of history:
+    # 12 months for the lookback window + 1 month for the "skip"
+    # the -1 at the end ensures we always have a "next month" to measure returns against
     for i in range(13, len(month_starts) - 1):
         current_date = month_starts[i]
         next_date    = month_starts[i + 1]
